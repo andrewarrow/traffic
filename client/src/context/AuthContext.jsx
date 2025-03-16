@@ -1,6 +1,10 @@
 import { createContext, useState, useEffect } from 'react'
 import axios from 'axios'
 
+// Configure axios with base URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+axios.defaults.baseURL = API_URL;
+
 export const AuthContext = createContext()
 
 export const AuthProvider = ({ children }) => {
@@ -8,6 +12,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   
   useEffect(() => {
+    // Configure axios on initial load
+    axios.defaults.baseURL = API_URL;
+    
     const token = localStorage.getItem('token')
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`

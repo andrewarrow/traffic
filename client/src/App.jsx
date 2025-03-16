@@ -5,8 +5,21 @@ import Dashboard from './pages/Dashboard'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+      <div className="w-16 h-16 border-t-4 border-b-4 border-orange-500 rounded-full animate-spin"></div>
+      <p className="mt-4 text-lg text-gray-600">Loading Traffic...</p>
+    </div>
+  )
+}
+
 function App() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
+
+  if (loading) {
+    return <LoadingScreen />
+  }
 
   return (
     <Routes>

@@ -1,3 +1,8 @@
 Start with a splash page with login and regsiter buttons for a site called "traffic" that helps engineers learn how to handle scaling issue in a simulator. Give me a test user username "andrewarrow" password "testing". Once logged in have a logout button.
 
-After
+After the user logs in they see what looks like the AWS console dashboard with a recently
+visited card showing: EC2, Route53, Elasicache, DynamoDB, and RDS.
+
+Try and match the aws layout with smaller icons, and the recently visited card is on the 
+left column 50% of screen. On the right col other 50% have a tab for "Applications" and list
+one running app "trafficforums.com" with a link to route53, an ip address, and another link to ec2.
