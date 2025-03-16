@@ -9,3 +9,14 @@ one running app "trafficforums.com" with a link to route53, an ip address, and a
 
 Make the recently visited card two cols, and just list the services with their icons in list
 format. Don't make a card for each one. Add EKS and ECR as well.
+
+Change the top where it says "Traffic Console Dashboard
+
+Learn to handle scaling challenges with our simulator." to be a large slider with http requests
+per second. The left side should be just 1 request a second and the right side should be 10k
+requests per second. Change the status of the running application to warn, then error as
+the traffic increases, and finally changed to fail. When the slider goes back down reverse.
+
+Change the slider to be a progress bar and make it automatically move from 1 request a second
+to 2 then 3, then 4 etc. moving up at 1 more request per second every second. Have
+a pause and play icon to pause and resume the constantly increasing traffic.
