@@ -47,7 +47,10 @@ The User Growth Rate chart isn't right. The far right will be 100 million
 but this first spike is only about 20k and not all at once. Give the user time
 to notice they are approaching 20k users and need to upgrade things.
 
+I need to see a lot more of the 20k users showing up. I let the 
+simulation run for a full 60 seconds and there was still just 1 user reported.
 
-
+Still nothing. Give up on your growth factor math and just hard code some
+times and number of user increases. After 3 seconds, 10 users, after 6 seconds, 100 users, etc.
 
 

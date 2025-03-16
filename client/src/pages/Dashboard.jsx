@@ -47,7 +47,7 @@ function Dashboard() {
   ]
   
   const simulationInterval = useRef(null)
-  const growthRate = useRef(1.01) // Initial faster growth
+  const growthRate = useRef(1.2) // Much faster initial growth
   const earlySpikeDone = useRef(false) // Track if early spike happened
   
   const toggleSimulation = () => {
@@ -55,13 +55,17 @@ function Dashboard() {
   }
   
   const resetSimulation = () => {
-    setUserCount(1)
+    setUserCount(5) // Start with 5 users
     setSliderValue(0)
     setCpuUsage(2)
     setMemoryUsage(5)
     setSubforumCount(1)
     setPostCount(0)
     setCommentCount(0)
+    setActiveConnections(1)
+    setPostsPerMinute(0)
+    setResponseTime(50)
+    setErrorRate('< 1%')
     setTimeElapsed(0)
     setSystemDown(false)
     setArchitecture({
@@ -69,7 +73,6 @@ function Dashboard() {
       servers: 1,
       deployment: 'single-ec2',
     })
-    growthRate.current = 1.01
     earlySpikeDone.current = false
     setIsSimulationRunning(true)
   }
@@ -121,33 +124,55 @@ function Dashboard() {
       simulationInterval.current = setInterval(() => {
         setTimeElapsed(prev => prev + 1)
         
-        // Early mini hockey stick spike after a few seconds (timeElapsed > 4)
-        if (timeElapsed > 4 && timeElapsed < 15 && !earlySpikeDone.current) {
-          growthRate.current = 1.3 // Sharp early spike
-        } 
-        // Detect if user has upgraded infrastructure
-        else if ((architecture.database !== 'sqlite' || architecture.servers > 1 || 
-                 architecture.deployment !== 'single-ec2') && 
-                 growthRate.current > 1.05) {
-          // Slow down growth after user takes action
-          growthRate.current = 1.02
-          earlySpikeDone.current = true
-        }
-        // If user took no action, continue with normal growth pattern
-        else if (timeElapsed >= 15) {
-          if (userCount > 10000) {
-            growthRate.current = 1.1
-          } else if (userCount > 1000) {
-            growthRate.current = 1.05
-          } else if (userCount > 100) {
-            growthRate.current = 1.03
+        // Hard-coded time-based user counts
+        let newUserCount;
+        
+        // Check if user has taken action to upgrade infrastructure
+        const hasUpgraded = architecture.database !== 'sqlite' || 
+                           architecture.servers > 1 || 
+                           architecture.deployment !== 'single-ec2';
+        
+        if (hasUpgraded && !earlySpikeDone.current) {
+          // Slow down growth if user has upgraded
+          earlySpikeDone.current = true;
+          newUserCount = Math.min(userCount + 500, 25000);
+        } else if (earlySpikeDone.current) {
+          // Slower growth after the initial spike
+          newUserCount = Math.min(userCount + 200, 100000000);
+        } else {
+          // Direct time-based progression
+          if (timeElapsed <= 2) {
+            newUserCount = 5;
+          } else if (timeElapsed <= 3) {
+            newUserCount = 10;
+          } else if (timeElapsed <= 4) {
+            newUserCount = 50;
+          } else if (timeElapsed <= 5) {
+            newUserCount = 100;
+          } else if (timeElapsed <= 6) {
+            newUserCount = 200;
+          } else if (timeElapsed <= 8) {
+            newUserCount = 500;
+          } else if (timeElapsed <= 10) {
+            newUserCount = 1000;
+          } else if (timeElapsed <= 12) {
+            newUserCount = 2000;
+          } else if (timeElapsed <= 14) {
+            newUserCount = 5000;
+          } else if (timeElapsed <= 16) {
+            newUserCount = 10000;
+          } else if (timeElapsed <= 18) {
+            newUserCount = 15000;
+          } else if (timeElapsed <= 20) {
+            newUserCount = 20000;
+            earlySpikeDone.current = true;
+          } else {
+            // After 20 seconds, if no action taken
+            newUserCount = 25000;
           }
-          earlySpikeDone.current = true
         }
         
-        // Update user count based on growth rate
-        const newUserCount = Math.floor(userCount * growthRate.current)
-        setUserCount(newUserCount)
+        setUserCount(newUserCount);
         
         // Update slider value (0-100)
         const logUserCount = Math.log10(newUserCount)
@@ -209,12 +234,13 @@ function Dashboard() {
           setErrorRate('< 1%')
         }
         
-        // System goes down if CPU > 95% for too long
-        if (newCpuUsage > 95 && architecture.database === 'sqlite' && architecture.servers === 1) {
+        // System goes down if CPU > 90% for too long or if we're past 20k users on single sqlite instance
+        if ((newCpuUsage > 90 && architecture.database === 'sqlite' && architecture.servers === 1) ||
+            (userCount > 20000 && architecture.database === 'sqlite' && architecture.servers === 1)) {
           setTimeout(() => {
             setSystemDown(true)
             setIsSimulationRunning(false)
-          }, 5000)
+          }, 3000)
         }
       }, 500)
     } else {
@@ -243,6 +269,25 @@ function Dashboard() {
             </div>
           </div>
           
+          {/* Traffic spike alert */}
+          {timeElapsed > 2 && userCount > 10 && timeElapsed < 20 && earlySpikeDone.current === false ? (
+            <div className="mt-4 bg-purple-900 border border-purple-700 text-white p-2 rounded-md shadow-lg animate-pulse">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium">Traffic Spike Detected!</h3>
+                  <div className="text-sm">
+                    <p>Your site is experiencing a sudden surge in traffic!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          
           {/* User count slider */}
           <div className="mt-4 flex items-center space-x-4">
             <div className="text-sm font-medium">1 user</div>
@@ -254,6 +299,11 @@ function Dashboard() {
             </div>
             <div className="text-sm font-medium">100M users</div>
             <div className="ml-2 text-lg font-semibold">{formatNumber(userCount)}</div>
+          </div>
+          
+          {/* Timer */}
+          <div className="mt-2 text-sm text-gray-400 text-right">
+            Simulation time: {timeElapsed} seconds
           </div>
         </div>
       </header>
@@ -288,9 +338,6 @@ function Dashboard() {
           >
             Reset Simulation
           </button>
-          <div className="text-sm text-gray-400 py-2">
-            Simulation time: {Math.floor(timeElapsed / 120)} days
-          </div>
         </div>
         
         {/* Metrics and graphs */}
@@ -416,27 +463,44 @@ function Dashboard() {
             <h3 className="text-xl font-medium mb-4">User Growth Rate</h3>
             
             <div className="flex items-end h-48 mb-4 space-x-2">
-              {Array.from({ length: 24 }).map((_, i) => {
-                // Create visual pattern with early spike followed by slower growth then acceleration
+              {Array.from({ length: 20 }).map((_, i) => {
+                // Create visual pattern showing gradual early growth to 20k followed by potential hockey stick
                 let height;
-                if (i === 3 || i === 4) {
-                  // Early spike
-                  height = 60;
-                } else if (i < 3) {
-                  // Start
-                  height = Math.min(100, (Math.pow(1.2, i) / Math.pow(1.2, 23)) * 100);
-                } else if (i > 4 && i < 10) {
-                  // Post-spike stabilization
-                  height = Math.min(100, (Math.pow(1.1, i) / Math.pow(1.1, 23)) * 100 + 20);
+                if (i < 5) {
+                  // Very slow start
+                  height = 2 + i;
+                } else if (i < 10) {
+                  // Early growth phase
+                  height = 10 + (i - 5) * 3;
+                } else if (i === 10) {
+                  // 20k users mark - approx 25% of the way up the graph
+                  height = 25;
+                } else if (i < 15) {
+                  // Medium growth 
+                  height = 25 + (i - 10) * 5;
                 } else {
-                  // Later hockey stick
-                  height = Math.min(100, (Math.pow(1.5, i - 9) / Math.pow(1.5, 14)) * 100);
+                  // Late hockey stick to 100M
+                  height = 45 + Math.pow(1.8, i - 14) * 4;
+                }
+                
+                // Highlight the current phase based on user count
+                let barColor = 'bg-blue-500';
+                if (userCount < 500 && i < 5) {
+                  barColor = 'bg-orange-500';
+                } else if (userCount >= 500 && userCount < 10000 && i >= 5 && i < 10) {
+                  barColor = 'bg-orange-500';
+                } else if (userCount >= 10000 && userCount < 20000 && i === 10) {
+                  barColor = 'bg-orange-500';
+                } else if (userCount >= 20000 && userCount < 100000 && i > 10 && i < 15) {
+                  barColor = 'bg-orange-500';
+                } else if (userCount >= 100000 && i >= 15) {
+                  barColor = 'bg-orange-500';
                 }
                 
                 return (
                   <div 
                     key={i} 
-                    className={`rounded-t w-full ${i === 3 || i === 4 ? 'bg-orange-500' : 'bg-blue-500'}`}
+                    className={`rounded-t w-full ${barColor}`}
                     style={{ height: `${height}%` }}
                   ></div>
                 );
@@ -445,7 +509,8 @@ function Dashboard() {
             
             <div className="text-sm text-gray-400 flex justify-between">
               <span>Start</span>
-              <span>Time: {Math.floor(timeElapsed / 2)} seconds</span>
+              <span className="text-center flex-grow">20k Users</span>
+              <span>100M</span>
             </div>
             
             <div className="mt-6">
@@ -547,23 +612,6 @@ function Dashboard() {
         </div>
         
         {/* Warning alerts */}
-        {timeElapsed > 4 && timeElapsed < 15 && earlySpikeDone.current === false ? (
-          <div className="bg-purple-900 border border-purple-700 text-white p-4 rounded-md shadow-lg mb-4 animate-pulse">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-purple-300" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium">Traffic Spike Detected!</h3>
-                <div className="mt-2 text-sm">
-                  <p>Your site is experiencing a sudden surge in traffic. Your infrastructure may need upgrades soon!</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
         
         {cpuUsage > 90 ? (
           <div className="bg-red-900 border border-red-700 text-white p-4 rounded-md shadow-lg mb-4 animate-pulse">
@@ -622,7 +670,7 @@ function Dashboard() {
           <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
             <h3 className="font-medium mb-2">Active Connections</h3>
             <div className="text-2xl font-bold">{formatNumber(activeConnections)}</div>
-            {timeElapsed > 4 && timeElapsed < 15 && earlySpikeDone.current === false && activeConnections > 5 && (
+            {timeElapsed > 2 && timeElapsed < 20 && earlySpikeDone.current === false && activeConnections > 5 && (
               <div className="text-xs text-orange-400 mt-1 animate-pulse">
                 +{formatNumber(Math.floor(activeConnections * 0.1))}/sec
               </div>
@@ -631,7 +679,7 @@ function Dashboard() {
           <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
             <h3 className="font-medium mb-2">New Posts/Minute</h3>
             <div className="text-2xl font-bold">{formatNumber(postsPerMinute)}</div>
-            {timeElapsed > 4 && timeElapsed < 15 && earlySpikeDone.current === false && postsPerMinute > 0 && (
+            {timeElapsed > 2 && timeElapsed < 20 && earlySpikeDone.current === false && postsPerMinute > 0 && (
               <div className="text-xs text-orange-400 mt-1 animate-pulse">
                 Trending!
               </div>
