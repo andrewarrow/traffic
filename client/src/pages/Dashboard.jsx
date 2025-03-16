@@ -20,7 +20,9 @@ function Dashboard() {
     { id: 'route53', name: 'Route53', description: 'Scalable DNS and domain name registration', icon: '⚪' },
     { id: 'elasticache', name: 'Elasticache', description: 'In-memory caching service', icon: '🔷' },
     { id: 'dynamodb', name: 'DynamoDB', description: 'Managed NoSQL database', icon: '🔶' },
-    { id: 'rds', name: 'RDS', description: 'Managed relational database service', icon: '🔵' }
+    { id: 'rds', name: 'RDS', description: 'Managed relational database service', icon: '🔵' },
+    { id: 'eks', name: 'EKS', description: 'Managed Kubernetes service', icon: '🟢' },
+    { id: 'ecr', name: 'ECR', description: 'Container registry service', icon: '📦' }
   ]
 
   // Application data
@@ -144,15 +146,15 @@ function Dashboard() {
           <div className="md:w-1/2">
             <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
               <h3 className="text-sm font-medium text-gray-800 mb-3 border-b pb-2">Recently visited services</h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 {recentServices.map(service => (
                   <a 
                     key={service.id}
                     href={`#${service.id}`}
-                    className="border border-gray-200 rounded-md p-3 hover:bg-gray-50 hover:border-gray-300 transition-all flex flex-col items-center text-center"
+                    className="flex items-center hover:bg-gray-50 p-2 rounded transition-colors"
                   >
-                    <div className="text-lg mb-1">{service.icon}</div>
-                    <h4 className="text-xs font-medium text-gray-800">{service.name}</h4>
+                    <div className="text-lg mr-2">{service.icon}</div>
+                    <h4 className="text-sm font-medium text-gray-800">{service.name}</h4>
                   </a>
                 ))}
               </div>
