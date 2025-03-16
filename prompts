@@ -27,3 +27,12 @@ There should be some buttons like
 There should also be a button for "add ec2 instance" which will require a load balancer.
 There should be a button for "move to k8s" or other container systems. If the user doesn't
 make any choices eventually the whole site should turn RED with a big DOWN message.
+
+Change the User Growth Rate to have a mini hockey tick after just a few seconds of the
+simulation starting. It should be enough traffic that makes the user realize they will
+need to take action soon. After they change the database, add a 2nd box etc. the traffic
+can slow down.
+
+
+
+
