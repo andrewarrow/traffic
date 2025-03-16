@@ -33,6 +33,21 @@ simulation starting. It should be enough traffic that makes the user realize the
 need to take action soon. After they change the database, add a 2nd box etc. the traffic
 can slow down.
 
+As the first traffic spike starts we should see the slider at the top increase.
+All the Site Metrics need to change as well. Also change Active Connections 0 New Posts/Minute 0 Response Time 50 ms Error Rate < 1%.
+Under Compute Resources when the user adds the 2nd ec2 box show that a load balancer is now
+one of the resources in use.
+
+Move "Traffic Spike Detected!" to the top.
+Simulation time: 0 days needs to change to a timer with number of seconds.
+The top slider with 1 user to 100 million need to show a little sliver of growth 
+and the 1 at the right side needs to change to the current number of users which
+is growing very fast during the spike.
+The User Growth Rate chart isn't right. The far right will be 100 million
+but this first spike is only about 20k and not all at once. Give the user time
+to notice they are approaching 20k users and need to upgrade things.
+
+
 
 
 

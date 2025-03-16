@@ -26,6 +26,10 @@ function Dashboard() {
   const [subforumCount, setSubforumCount] = useState(1)
   const [postCount, setPostCount] = useState(0)
   const [commentCount, setCommentCount] = useState(0)
+  const [activeConnections, setActiveConnections] = useState(0)
+  const [postsPerMinute, setPostsPerMinute] = useState(0)
+  const [responseTime, setResponseTime] = useState(50)
+  const [errorRate, setErrorRate] = useState('< 1%')
   const [isSimulationRunning, setIsSimulationRunning] = useState(true)
   const [timeElapsed, setTimeElapsed] = useState(0)
   const [systemDown, setSystemDown] = useState(false)
@@ -186,6 +190,25 @@ function Dashboard() {
         setCpuUsage(Math.min(newCpuUsage, 100))
         setMemoryUsage(Math.min(newMemoryUsage, 100))
         
+        // Update detailed metrics
+        setActiveConnections(Math.floor(newUserCount * 0.1))
+        setPostsPerMinute(Math.floor(newUserCount * 0.001))
+        
+        // Response time increases with CPU usage
+        if (newCpuUsage > 90) {
+          setResponseTime(Math.floor(3000 + Math.random() * 2000))
+          setErrorRate('> 10%')
+        } else if (newCpuUsage > 80) {
+          setResponseTime(Math.floor(1000 + Math.random() * 1000))
+          setErrorRate('5%')
+        } else if (newCpuUsage > 70) {
+          setResponseTime(Math.floor(200 + newCpuUsage * 5))
+          setErrorRate('2%')
+        } else {
+          setResponseTime(Math.floor(50 + newCpuUsage * 2))
+          setErrorRate('< 1%')
+        }
+        
         // System goes down if CPU > 95% for too long
         if (newCpuUsage > 95 && architecture.database === 'sqlite' && architecture.servers === 1) {
           setTimeout(() => {
@@ -272,7 +295,7 @@ function Dashboard() {
         
         {/* Metrics and graphs */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* EC2 instance */}
+          {/* Infrastructure */}
           <div className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-medium">
@@ -280,6 +303,32 @@ function Dashboard() {
                   architecture.servers > 1 ? `${architecture.servers} EC2 instances` : 'Single EC2 Instance'}
               </h3>
               <span className={`h-3 w-3 rounded-full ${cpuUsage > 90 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></span>
+            </div>
+            
+            {/* Infrastructure visualization */}
+            <div className="mb-6 flex flex-wrap gap-2">
+              {/* Display load balancer if multiple servers */}
+              {architecture.servers > 1 && (
+                <div className="bg-blue-900 border border-blue-700 rounded px-2 py-1 text-xs font-medium">
+                  Load Balancer
+                </div>
+              )}
+              
+              {/* Display servers */}
+              {Array.from({ length: architecture.servers }).map((_, i) => (
+                <div key={i} className="flex-1 min-w-[80px] bg-gray-700 border border-gray-600 rounded p-2">
+                  <div className="text-xs font-medium mb-1">EC2 {i+1}</div>
+                  <div className="w-full bg-gray-600 rounded-full h-1">
+                    <div 
+                      className={`h-1 rounded-full ${getUtilizationColor(cpuUsage)}`}
+                      style={{ 
+                        width: `${Math.min(cpuUsage, 100)}%`, 
+                        transition: 'width 0.5s ease-out, background-color 0.5s ease-out'
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
             </div>
             
             <div className="mb-4">
@@ -572,23 +621,43 @@ function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
             <h3 className="font-medium mb-2">Active Connections</h3>
-            <div className="text-2xl font-bold">{formatNumber(Math.floor(userCount * 0.1))}</div>
+            <div className="text-2xl font-bold">{formatNumber(activeConnections)}</div>
+            {timeElapsed > 4 && timeElapsed < 15 && earlySpikeDone.current === false && activeConnections > 5 && (
+              <div className="text-xs text-orange-400 mt-1 animate-pulse">
+                +{formatNumber(Math.floor(activeConnections * 0.1))}/sec
+              </div>
+            )}
           </div>
           <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
             <h3 className="font-medium mb-2">New Posts/Minute</h3>
-            <div className="text-2xl font-bold">{formatNumber(Math.floor(userCount * 0.001))}</div>
+            <div className="text-2xl font-bold">{formatNumber(postsPerMinute)}</div>
+            {timeElapsed > 4 && timeElapsed < 15 && earlySpikeDone.current === false && postsPerMinute > 0 && (
+              <div className="text-xs text-orange-400 mt-1 animate-pulse">
+                Trending!
+              </div>
+            )}
           </div>
           <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
             <h3 className="font-medium mb-2">Response Time</h3>
-            <div className="text-2xl font-bold">
-              {cpuUsage > 90 ? '> 5000' : cpuUsage > 70 ? formatNumber(Math.floor(200 + cpuUsage * 5)) : formatNumber(Math.floor(50 + cpuUsage * 2))} ms
+            <div className={`text-2xl font-bold ${responseTime > 1000 ? 'text-red-400' : responseTime > 500 ? 'text-orange-400' : ''}`}>
+              {formatNumber(responseTime)} ms
             </div>
+            {responseTime > 1000 && (
+              <div className="text-xs text-red-400 mt-1">
+                Users experiencing lag
+              </div>
+            )}
           </div>
           <div className="bg-gray-800 rounded-lg p-4 shadow-md border border-gray-700">
             <h3 className="font-medium mb-2">Error Rate</h3>
-            <div className="text-2xl font-bold">
-              {cpuUsage > 90 ? '> 10%' : cpuUsage > 80 ? '5%' : cpuUsage > 70 ? '2%' : '< 1%'}
+            <div className={`text-2xl font-bold ${errorRate !== '< 1%' ? 'text-red-400' : ''}`}>
+              {errorRate}
             </div>
+            {errorRate !== '< 1%' && (
+              <div className="text-xs text-red-400 mt-1">
+                Some requests failing
+              </div>
+            )}
           </div>
         </div>
       </main>
